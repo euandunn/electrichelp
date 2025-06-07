@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Electrical Checklist & Materials</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: #f5f5f7;
+    }
+    .checkbox-circle {
+      width: 24px;
+      height: 24px;
+      border: 2px solid #007aff; /* Blue border to match your image */
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      background-color: #007aff; /* Blue background */
+    }
+    .checkbox-circle.unchecked {
+      background-color: transparent; /* Transparent when unchecked */
+      border-color: #d1d1d6; /* Light grey border when unchecked */
+    }
+    .checkbox-circle.checked::after {
+      content: '✔';
+      color: white;
+      font-size: 16px;
+    }
+    .cross-circle {
+      width: 24px;
+      height: 24px;
+      border: 2px solid #ff3b30; /* Red border to match your image */
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      background-color: #ff3b30; /* Red background */
+    }
+    .cross-circle.unchecked {
+      background-color: transparent; /* Transparent when unchecked */
+      border-color: #d1d1d6; /* Light grey border when unchecked */
+    }
+    .cross-circle.checked::after {
+      content: '✖';
+      color: white;
+      font-size: 16px;
+    }
+    .delete-btn {
+      width: 20px;
+      height: 20px;
+      background-color: #d1d1d6;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: white;
+      font-size: 14px;
+    }
+    .input-light-grey {
+      background-color: #f1f1f3;
+      border: none;
+      border-radius: 8px;
+      padding: 4px;
+      font-size: 14px;
+      width: 100%;
+    }
+    .dropdown-light-grey {
+      appearance: none;
+      background-color: #f1f1f3;
+      border: none;
+      border-radius: 8px;
+      padding: 4px;
+      font-size: 14px;
+      width: 100%;
+    }
+    .materials-item {
+      margin-bottom: 1rem;
+    }
+    .materials-fields {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+    }
+    .container > div, .container > h2 {
+      margin-bottom: 1.5rem;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <nav class="bg-white shadow-sm p-4 flex justify-between items-center">
+    <h1 class="text-2xl font-semibold text-gray-900">Electrical App</h1>
+    <div class="space-x-4">
+      <button onclick="showPage('checklist')" class="text-blue-600 font-medium">Checklist</button>
+      <button onclick="showPage('materials')" class="text-blue-600 font-medium">Materials</button>
+      <button onclick="downloadPDF()" class="bg-blue-600 text-white px-4 py-2 rounded-lg">Download PDF</button>
+      <button onclick="copyToWhatsApp()" class="bg-green-600 text-white px-4 py-2 rounded-lg">Copy to WhatsApp</button>
+    </div>
+  </nav>
+
+  <div id="checklist" class="container mx-auto p-6">
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Details</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="text-sm text-gray-600">Name</label>
+          <input id="user-name" type="text" placeholder="Enter name" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
+        </div>
+        <div>
+          <label class="text-sm text-gray-600">Site</label>
+          <input id="site" type="text" placeholder="Enter site" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
+        </div>
+        <div>
+          <label class="text-sm text-gray-600">Plot Number</label>
+          <input id="plot-number" type="text" placeholder="Enter plot number" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
+        </div>
+        <div>
+          <label class="text-sm text-gray-600">Date</label>
+          <input id="date" type="date" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
+        </div>
+      </div>
+    </div>
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Checklist</h2>
+    <div id="permanent-items" class="bg-white rounded-lg shadow-sm p-4 mb-6">
+      <!-- Permanent checklist items will be populated here -->
+    </div>
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Outstanding Items</h2>
+    <div class="bg-white rounded-lg shadow-sm p-4">
+      <div class="flex mb-4">
+        <input id="new-item-input" type="text" placeholder="Add new item" class="flex-1 p-2 border border-gray-300 rounded-lg mr-2 focus:outline-none focus:ring-2 focus:ring-blue-600">
+        <button onclick="addOutstandingItem()" class="bg-blue-600 text-white px-4 py-2 rounded-lg">Add</button>
+      </div>
+      <div id="outstanding-items"></div>
+    </div>
+  </div>
+
+  <div id="materials" class="container mx-auto p-6 hidden">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Materials List</h2>
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+      <div id="materials-list" class="space-y-4"></div>
+      <div class="flex mt-4">
+        <input id="new-material-input" type="text" placeholder="Add new material" class="flex-1 p-2 border border-gray-300 rounded-lg mr-2 focus:outline-none focus:ring-2 focus:ring-blue-600">
+        <button onclick="addMaterial()" class="bg-blue-600 text-white px-4 py-2 rounded-lg">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { jsPDF } = window.jspdf;
+
+    const permanentItems = [
+      "All Power & Lighting Circuits First Fixed?",
+      "All TV Coaxials First Fixed?",
+      "All BT Cables First Fixed?",
+      "All Cables Clipped Above 50mm?",
+      "All Cables Installed In Correct Zones?",
+      "All Knock Out Boxes Fitted With Two Screws & Grommets?",
+      "Cables Sleeved Where Passing Through Walls?",
+      "All Metal Box Lids Fitted Where Cables Pass Through Studs?",
+      "Putty Pads Installed In Boxes Backing Onto A Hallway Or Corridor?",
+      "All Ducting Installed Correctly?",
+      "All Ducting Joins Correctly Sealed With Foil Tape?",
+      "All Ducting Penetrations Correctly Sealed?",
+      "Meter Tails Installed?",
+      "Metal Plating Installed Over Meter Tails?",
+      "Sales Extras Installed As Per Client Request?"
+    ];
+
+    const materials = [
+      { name: "Socket 1G Unswitched 13A", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Socket 2G Switched 13A", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "USB Socket 2G Switched 13A", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Light Switch 1 Gang 2 Way", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Light Switch 2 Gang 2 Way", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Light Switch 3 Gang 2 Way", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Light Switch 1 Gang Intermediate", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "45A DP Cooker Switch C/W Neon", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "45A Hob Connection Plate", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Switched Spur", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "20A DP Switch C/W Neon", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "2G Grid Plate & 2G Yoke", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "3G Grid Plate & 4G Yoke", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "4G Grid Plate & 4G Yoke", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "6G Grid Plate & 2x 4G Yoke", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "8G Grid Plate & 2x 4G Yoke", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Bathroom Drum Fitting", qty: 0, color: "", hasColor: false },
+      { name: "Shaver Socket", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Downlighters", qty: 0, color: "", hasColor: false },
+      { name: "IP20 Bezels", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Polished Chrome", "Brushed Chrome"] },
+      { name: "IP65 Bezels", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Polished Chrome", "Brushed Chrome"] },
+      { name: "LED GU10 Lamps", qty: 0, color: "", hasColor: false },
+      { name: "Grid Switch & Washing Machine Rocker", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Grid Switch & Tumble Dryer Rocker", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Grid Switch & Dish Washer Rocker", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Grid Switch & Cooker Hood Rocker", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Grid Switch & Fridge Freezer Rocker", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Grid Switch & Hob Rocker", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "2 Way Lighting Grid Switch", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Intermediate Grid Switch", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Fan Isolator Switch", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "4” Fan", qty: 0, color: "", hasColor: false },
+      { name: "Pendant C/W Dec Cover", qty: 0, color: "", hasColor: false },
+      { name: "Batten Holder", qty: 0, color: "", hasColor: false },
+      { name: "PL1 LED Lamps", qty: 0, color: "", hasColor: false },
+      { name: "Smoke Detector", qty: 0, color: "", hasColor: false },
+      { name: "Heat Detector", qty: 0, color: "", hasColor: false },
+      { name: "Battery CO2 Detector", qty: 0, color: "", hasColor: false },
+      { name: "Mains CO2 Detector", qty: 0, color: "", hasColor: false },
+      { name: "MultiSmoke Detector", qty: 0, color: "", hasColor: false },
+      { name: "Ei450", qty: 0, color: "", hasColor: false },
+      { name: "RadioLINK", qty: 0, color: "", hasColor: false },
+      { name: "Track Light", qty: 0, color: "", hasColor: false },
+      { name: "2 Mod Euro Plate", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "4 Mod Euro Plate", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "F Type Euro Mod", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "BT Slave Euro Mod", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "TV Euro Mod", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Euro Blank", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Surface DB With Surge", qty: 0, color: "", hasColor: false },
+      { name: "6A MCB", qty: 0, color: "", hasColor: false },
+      { name: "16A MCB", qty: 0, color: "", hasColor: false },
+      { name: "20A MCB", qty: 0, color: "", hasColor: false },
+      { name: "32A MCB", qty: 0, color: "", hasColor: false },
+      { name: "20A Bi-Directional RCBO", qty: 0, color: "", hasColor: false },
+      { name: "32A Bi-Directional RCBO", qty: 0, color: "", hasColor: false },
+      { name: "MCB Blank Module", qty: 0, color: "", hasColor: false },
+      { name: "BT Slave Point", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Bell Chime & Push", qty: 0, color: "", hasColor: false },
+      { name: "External Light", qty: 0, color: "", hasColor: false },
+      { name: "Wiska Box", qty: 0, color: "Black", hasColor: true, colorOptions: ["Black"] },
+      { name: "1G Blank Plate", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "2G Blank Plate", qty: 0, color: "White", hasColor: true, colorOptions: ["White", "Brushed Chrome", "Black Nickel"] },
+      { name: "Clear Connection Box", qty: 0, color: "", hasColor: false }
+    ];
+
+    let checklistState = permanentItems.map(item => ({ name: item, checked: false }));
+    let outstandingItems = [];
+    let materialsState = [...materials];
+
+    function showPage(pageId) {
+      document.getElementById('checklist').classList.add('hidden');
+      document.getElementById('materials').classList.add('hidden');
+      document.getElementById(pageId).classList.remove('hidden');
+    }
+
+    function renderChecklist() {
+      const permanentItemsDiv = document.getElementById('permanent-items');
+      permanentItemsDiv.innerHTML = checklistState.map((item, index) => `
+        <div class="flex items-center justify-between py-2">
+          <div class="flex items-center">
+            <div class="checkbox-circle ${item.checked ? 'checked' : 'unchecked'}" onclick="toggleChecklistItem(${index})"></div>
+            <span class="ml-3 text-gray-900">${item.name}</span>
+          </div>
+        </div>
+      `).join('');
+
+      const outstandingItemsDiv = document.getElementById('outstanding-items');
+      outstandingItemsDiv.innerHTML = outstandingItems.map((item, index) => `
+        <div class="flex items-center justify-between py-2">
+          <div class="flex items-center">
+            <div class="cross-circle ${item.checked ? 'checked' : 'unchecked'}" onclick="toggleOutstandingItem(${index})"></div>
+            <input type="text" value="${item.name}" class="ml-3 p-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" onblur="editOutstandingItem(${index}, this.value)">
+          </div>
+          <div class="delete-btn" onclick="deleteOutstandingItem(${index})">✖</div>
+        </div>
+      `).join('');
+    }
+
+    function toggleChecklistItem(index) {
+      checklistState[index].checked = !checklistState[index].checked;
+      renderChecklist();
+    }
+
+    function addOutstandingItem() {
+      const input = document.getElementById('new-item-input');
+      if (input.value.trim()) {
+        outstandingItems.push({ name: input.value.trim(), checked: false });
+        input.value = '';
+        renderChecklist();
+      }
+    }
+
+    function editOutstandingItem(index, value) {
+      outstandingItems[index].name = value.trim();
+      renderChecklist();
+    }
+
+    function deleteOutstandingItem(index) {
+      outstandingItems.splice(index, 1);
+      renderChecklist();
+    }
+
+    function toggleOutstandingItem(index) {
+      outstandingItems[index].checked = !outstandingItems[index].checked;
+      renderChecklist();
+    }
+
+    function renderMaterials() {
+      const materialsListDiv = document.getElementById('materials-list');
+      materialsListDiv.innerHTML = materialsState.map((item, index) => `
+        <div class="materials-item py-3 border-b border-gray-200">
+          <div class="flex items-center justify-between mb-2">
+            <input type="text" value="${item.name}" class="text-gray-900 font-medium p-1 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 w-full" onblur="editMaterial(${index}, this.value)">
+            <div class="delete-btn" onclick="deleteMaterial(${index})">✖</div>
+          </div>
+          <div class="materials-fields">
+            <div class="flex-1">
+              <label class="text-sm text-gray-600">Qty</label>
+              <input type="number" value="${item.qty}" class="input-light-grey focus:outline-none focus:ring-2 focus:ring-blue-600" onblur="updateMaterialQty(${index}, this.value)">
+            </div>
+            ${item.hasColor ? `
+              <div class="flex-1">
+                <label class="text-sm text-gray-600">Colour</label>
+                <select class="dropdown-light-grey focus:outline-none focus:ring-2 focus:ring-blue-600" onchange="updateMaterialColor(${index}, this.value)">
+                  ${item.colorOptions.map(color => `<option value="${color}" ${item.color === color ? 'selected' : ''}>${color}</option>`).join('')}
+                </select>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function editMaterial(index, value) {
+      materialsState[index].name = value.trim();
+      renderMaterials();
+    }
+
+    function updateMaterialQty(index, value) {
+      materialsState[index].qty = parseInt(value) || 0;
+      renderMaterials();
+    }
+
+    function updateMaterialColor(index, value) {
+      materialsState[index].color = value;
+      renderMaterials();
+    }
+
+    function deleteMaterial(index) {
+      materialsState.splice(index, 1);
+      renderMaterials();
+    }
+
+    function addMaterial() {
+      const input = document.getElementById('new-material-input');
+      if (input.value.trim()) {
+        materialsState.push({
+          name: input.value.trim(),
+          qty: 0,
+          color: "White",
+          hasColor: true,
+          colorOptions: ["White", "Brushed Chrome", "Black Nickel"]
+        });
+        input.value = '';
+        renderMaterials();
+      }
+    }
+
+    function downloadPDF() {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
+      const margin = 10;
+      const maxWidth = 170;
+      let y = 20;
+
+      function addText(text, x, yPos, fontSize = 12, style = 'normal') {
+        doc.setFont('helvetica', style);
+        doc.setFontSize(fontSize);
+        const lines = doc.splitTextToSize(text, maxWidth);
+        lines.forEach(line => {
+          if (yPos + 10 > pageHeight - margin) {
+            doc.addPage();
+            yPos = margin;
+          }
+          doc.text(line, x, yPos);
+          yPos += 10;
+        });
+        return yPos;
+      }
+
+      // Details Section
+      doc.setFont('helvetica', 'bold');
+      y = addText('Electrical Checklist & Materials', margin, y, 16);
+      doc.setFont('helvetica', 'normal');
+      const userName = document.getElementById('user-name').value || 'Not provided';
+      const site = document.getElementById('site').value || 'Not provided';
+      const plotNumber = document.getElementById('plot-number').value || 'Not provided';
+      let date = document.getElementById('date').value || 'Not provided';
+      if (date !== 'Not provided') {
+        const [year, month, day] = date.split('-');
+        date = `${day}/${month}/${year}`;
+      }
+      y = addText(`Name: ${userName}`, margin, y, 12);
+      y = addText(`Site: ${site}`, margin, y, 12);
+      y = addText(`Plot Number: ${plotNumber}`, margin, y, 12);
+      y = addText(`Date: ${date}`, margin, y, 12);
+      y += 10;
+
+      // Checklist Section
+      doc.setFont('helvetica', 'bold');
+      y = addText('Checklist', margin, y, 14);
+      doc.setFont('helvetica', 'normal');
+      checklistState.forEach(item => {
+        y = addText(`${item.checked ? '✔' : '○'} ${item.name}`, margin, y);
+      });
+      y += 10;
+
+      // Outstanding Items Section
+      doc.setFont('helvetica', 'bold');
+      y = addText('Outstanding Items', margin, y, 14);
+      doc.setFont('helvetica', 'normal');
+      outstandingItems.forEach(item => {
+        y = addText(`${item.checked ? '✔' : '✖'} ${item.name}`, margin, y);
+      });
+
+      // Materials List Section
+      doc.addPage();
+      y = margin;
+      doc.setFont('helvetica', 'bold');
+      y = addText('Materials List', margin, y, 14);
+      doc.setFont('helvetica', 'normal');
+      materialsState.forEach(item => {
+        y = addText(`${item.name} | Qty: ${item.qty}${item.hasColor ? ` | Color: ${item.color}` : ''}`, margin, y);
+      });
+
+      doc.save('Electrical_Checklist_Materials.pdf');
+    }
+
+    function copyToWhatsApp() {
+      const userName = document.getElementById('user-name').value || 'Not provided';
+      const site = document.getElementById('site').value || 'Not provided';
+      const plotNumber = document.getElementById('plot-number').value || 'Not provided';
+      let date = document.getElementById('date').value || 'Not provided';
+      if (date !== 'Not provided') {
+        const [year, month, day] = date.split('-');
+        date = `${day}/${month}/${year}`;
+      }
+      let text = `Electrical Checklist & Materials\n\n`;
+      text += `Name: ${userName}\n`;
+      text += `Site: ${site}\n`;
+      text += `Plot Number: ${plotNumber}\n`;
+      text += `Date: ${date}\n\n`;
+      text += 'Checklist:\n';
+      checklistState.forEach(item => {
+        text += `${item.checked ? '✔' : '○'} ${item.name}\n`;
+      });
+      text += '\nOutstanding Items:\n';
+      outstandingItems.forEach(item => {
+        text += `${item.checked ? '✔' : '✖'} ${item.name}\n`;
+      });
+      text += '\nMaterials List:\n';
+      materialsState.forEach(item => {
+        text += `${item.name} | Qty: ${item.qty}${item.hasColor ? ` | Color: ${item.color}` : ''}\n`;
+      });
+
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Text copied to clipboard! Paste it into WhatsApp to share.');
+      }).catch(err => {
+        alert('Failed to copy text: ' + err);
+      });
+    }
+
+    // Initialize
+    renderChecklist();
+    renderMaterials();
+    showPage('checklist');
+  </script>
+</body>
+</html>
