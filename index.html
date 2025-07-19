@@ -123,14 +123,14 @@
         table {
             table-layout: fixed;
         }
-        /* Adjusted column widths */
-        th:nth-child(1), td:nth-child(1) { width: 14%; }
-        th:nth-child(2), td:nth-child(2) { width: 15%; }
-        th:nth-child(3), td:nth-child(3) { width: 33%; }
+        /* Adjusted column widths - increased date and location columns */
+        th:nth-child(1), td:nth-child(1) { width: 16%; } /* Date column - increased */
+        th:nth-child(2), td:nth-child(2) { width: 18%; } /* Location column - increased */
+        th:nth-child(3), td:nth-child(3) { width: 29%; } /* Description - decreased to compensate */
         th:nth-child(4), td:nth-child(4) { width: 10%; }
         th:nth-child(5), td:nth-child(5) { width: 12%; }
         th:nth-child(6), td:nth-child(6) { width: 12%; }
-        th:nth-child(7), td:nth-child(7) { width: 4%; }
+        th:nth-child(7), td:nth-child(7) { width: 3%; }
         .fiscal-week {
             display: inline-block;
             background-color: rgba(0, 113, 227, 0.1);
@@ -152,6 +152,13 @@
             white-space: normal;
             word-wrap: break-word;
             min-height: 24px;
+        }
+        /* Location/plot input styling for multi-line */
+        .location-input {
+            white-space: normal;
+            word-wrap: break-word;
+            min-height: 24px;
+            resize: none;
         }
         /* Weekly earnings page styles */
         .earnings-container {
@@ -443,7 +450,7 @@ PO13 9FX</textarea>
                                 <input type="text" class="table-input text-sm date-field" value="14/07/2025">
                             </td>
                             <td class="py-2 px-3 border-b border-gray-50">
-                                <input type="text" class="table-input text-sm" placeholder="Location/Plot Number">
+                                <textarea class="table-input text-sm location-input resize-none" rows="1" placeholder="Location/Plot Number"></textarea>
                             </td>
                             <td class="py-2 px-3 border-b border-gray-50">
                                 <textarea class="table-input text-sm description-input resize-none" rows="1" placeholder="Description of work performed"></textarea>
@@ -722,7 +729,7 @@ PO13 9FX</textarea>
             
             // Auto-resize textareas
             document.addEventListener('input', function(e) {
-                if (e.target.classList.contains('description-input')) {
+                if (e.target.classList.contains('description-input') || e.target.classList.contains('location-input')) {
                     autoResizeTextarea(e.target);
                 }
             });
@@ -733,7 +740,7 @@ PO13 9FX</textarea>
             }
             
             // Initialize all textareas
-            document.querySelectorAll('.description-input').forEach(textarea => {
+            document.querySelectorAll('.description-input, .location-input').forEach(textarea => {
                 autoResizeTextarea(textarea);
             });
             
@@ -1002,7 +1009,7 @@ PO13 9FX</textarea>
                         <input type="text" class="table-input text-sm date-field" value="${dateValue}">
                     </td>
                     <td class="py-2 px-3 border-b border-gray-50">
-                        <input type="text" class="table-input text-sm" placeholder="Location/Plot Number">
+                        <textarea class="table-input text-sm location-input resize-none" rows="1" placeholder="Location/Plot Number"></textarea>
                     </td>
                     <td class="py-2 px-3 border-b border-gray-50">
                         <textarea class="table-input text-sm description-input resize-none" rows="1" placeholder="Description of work performed"></textarea>
@@ -1027,10 +1034,10 @@ PO13 9FX</textarea>
                 setupRowEventListeners(newRow);
                 
                 // Initialize textarea auto-resize
-                const textarea = newRow.querySelector('.description-input');
-                if (textarea) {
+                const textareas = newRow.querySelectorAll('.description-input, .location-input');
+                textareas.forEach(textarea => {
                     autoResizeTextarea(textarea);
-                }
+                });
                 
                 // If we're in a specific day view, hide the row if it doesn't match
                 if (activeDay !== 'all' && dayMapping[activeDay]) {
@@ -1425,5 +1432,5 @@ PO13 9FX</textarea>
             // addSampleData();
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'961aba9a40ba63bb',t:'MTc1MjkzMzQ1Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'961acc5500ae2050',t:'MTc1MjkzNDE4My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
