@@ -77,6 +77,7 @@
             border: none;
             width: 100%;
             padding: 0.5rem;
+            word-break: break-word;
         }
         .table-input:focus {
             outline: none;
@@ -121,9 +122,10 @@
         table {
             table-layout: fixed;
         }
-        th:nth-child(1), td:nth-child(1) { width: 12%; }
+        /* Adjusted column widths */
+        th:nth-child(1), td:nth-child(1) { width: 14%; }
         th:nth-child(2), td:nth-child(2) { width: 15%; }
-        th:nth-child(3), td:nth-child(3) { width: 35%; }
+        th:nth-child(3), td:nth-child(3) { width: 33%; }
         th:nth-child(4), td:nth-child(4) { width: 10%; }
         th:nth-child(5), td:nth-child(5) { width: 12%; }
         th:nth-child(6), td:nth-child(6) { width: 12%; }
@@ -137,6 +139,18 @@
             font-size: 12px;
             font-weight: 500;
             margin-left: 0.5rem;
+        }
+        /* Add text wrapping for table cells */
+        td {
+            white-space: normal;
+            word-wrap: break-word;
+            vertical-align: top;
+        }
+        /* Make sure description can wrap */
+        .description-input {
+            white-space: normal;
+            word-wrap: break-word;
+            min-height: 24px;
         }
     </style>
 </head>
@@ -228,19 +242,19 @@ PO13 9FX</textarea>
                     <tbody id="invoice-items">
                         <tr class="table-row" data-date="14/07/25">
                             <td class="py-2 px-3 border-b border-gray-50">
-                                <input type="text" class="table-input text-sm date-field" value="14/07/25">
+                                <input type="text" class="table-input text-sm date-field" value="14/07/2025">
                             </td>
                             <td class="py-2 px-3 border-b border-gray-50">
                                 <input type="text" class="table-input text-sm" placeholder="Location/Plot Number">
                             </td>
                             <td class="py-2 px-3 border-b border-gray-50">
-                                <input type="text" class="table-input text-sm" placeholder="Description of work performed">
+                                <textarea class="table-input text-sm description-input resize-none" rows="1" placeholder="Description of work performed"></textarea>
                             </td>
                             <td class="py-2 px-3 border-b border-gray-50">
                                 <input type="number" class="table-input text-sm text-right hours-input" value="" min="0" step="0.5" placeholder="">
                             </td>
                             <td class="py-2 px-3 border-b border-gray-50">
-                                <input type="text" class="table-input text-sm text-right rate-input" value="" placeholder="£0.00">
+                                <input type="text" class="table-input text-sm text-right rate-input" placeholder="0.00">
                             </td>
                             <td class="py-2 px-3 border-b border-gray-50">
                                 <input type="text" class="table-input text-sm text-right amount-field" value="£0.00" readonly>
@@ -315,6 +329,23 @@ PO13 9FX</textarea>
             // Calculate fiscal week and set invoice number
             updateFiscalWeekAndInvoiceNumber();
             
+            // Auto-resize textareas
+            document.addEventListener('input', function(e) {
+                if (e.target.classList.contains('description-input')) {
+                    autoResizeTextarea(e.target);
+                }
+            });
+            
+            function autoResizeTextarea(textarea) {
+                textarea.style.height = 'auto';
+                textarea.style.height = (textarea.scrollHeight) + 'px';
+            }
+            
+            // Initialize all textareas
+            document.querySelectorAll('.description-input').forEach(textarea => {
+                autoResizeTextarea(textarea);
+            });
+            
             // Tab switching
             const tabs = document.querySelectorAll('.tab');
             tabs.forEach(tab => {
@@ -383,14 +414,21 @@ PO13 9FX</textarea>
                 calculateTotals();
             }
             
-            // Parse display date (DD/MM/YY) to Date object
+            // Parse display date (DD/MM/YYYY) to Date object
             function parseDisplayDate(displayDate) {
+                // Handle both DD/MM/YY and DD/MM/YYYY formats
                 const parts = displayDate.split('/');
                 if (parts.length !== 3) return new Date();
                 
                 const day = parseInt(parts[0]);
                 const month = parseInt(parts[1]) - 1;
-                const year = parseInt('20' + parts[2]);
+                let year;
+                
+                if (parts[2].length === 2) {
+                    year = parseInt('20' + parts[2]);
+                } else {
+                    year = parseInt(parts[2]);
+                }
                 
                 return new Date(year, month, day);
             }
@@ -498,12 +536,12 @@ PO13 9FX</textarea>
                 return `${year}-${month}-${day}`;
             }
 
-            // Format date for display (DD/MM/YY)
+            // Format date for display (DD/MM/YYYY)
             function formatDateForDisplay(dateStr) {
                 const date = new Date(dateStr);
                 const day = String(date.getDate()).padStart(2, '0');
                 const month = String(date.getMonth() + 1).padStart(2, '0');
-                const year = String(date.getFullYear()).slice(-2);
+                const year = date.getFullYear(); // Use full year
                 return `${day}/${month}/${year}`;
             }
 
@@ -573,13 +611,13 @@ PO13 9FX</textarea>
                         <input type="text" class="table-input text-sm" placeholder="Location/Plot Number">
                     </td>
                     <td class="py-2 px-3 border-b border-gray-50">
-                        <input type="text" class="table-input text-sm" placeholder="Description of work performed">
+                        <textarea class="table-input text-sm description-input resize-none" rows="1" placeholder="Description of work performed"></textarea>
                     </td>
                     <td class="py-2 px-3 border-b border-gray-50">
                         <input type="number" class="table-input text-sm text-right hours-input" value="" min="0" step="0.5" placeholder="">
                     </td>
                     <td class="py-2 px-3 border-b border-gray-50">
-                        <input type="text" class="table-input text-sm text-right rate-input" value="" placeholder="£0.00">
+                        <input type="text" class="table-input text-sm text-right rate-input" placeholder="0.00">
                     </td>
                     <td class="py-2 px-3 border-b border-gray-50">
                         <input type="text" class="table-input text-sm text-right amount-field" value="£0.00" readonly>
@@ -593,6 +631,12 @@ PO13 9FX</textarea>
                 
                 // Add event listeners to the new row
                 setupRowEventListeners(newRow);
+                
+                // Initialize textarea auto-resize
+                const textarea = newRow.querySelector('.description-input');
+                if (textarea) {
+                    autoResizeTextarea(textarea);
+                }
                 
                 // If we're in a specific day view, hide the row if it doesn't match
                 if (activeDay !== 'all' && dayMapping[activeDay]) {
@@ -630,15 +674,27 @@ PO13 9FX</textarea>
                     calculateTotals();
                 });
                 
-                rateInput.addEventListener('input', function() {
-                    // Format as currency
-                    let value = rateInput.value.replace(/[^0-9.]/g, '');
-                    if (value) {
-                        rateInput.value = '£' + parseFloat(value).toFixed(2);
+                // Improved rate input handling
+                rateInput.addEventListener('focus', function() {
+                    // Remove currency symbol when focusing
+                    const value = rateInput.value.replace(/[^0-9.]/g, '');
+                    rateInput.value = value;
+                });
+                
+                rateInput.addEventListener('blur', function() {
+                    // Format as currency when leaving field
+                    if (rateInput.value) {
+                        const value = parseFloat(rateInput.value.replace(/[^0-9.]/g, '')) || 0;
+                        rateInput.value = '£' + value.toFixed(2);
                     } else {
                         rateInput.value = '';
                     }
-                    
+                    calculateRowAmount(row);
+                });
+                
+                rateInput.addEventListener('input', function() {
+                    // Only allow numbers and decimal point
+                    rateInput.value = rateInput.value.replace(/[^0-9.]/g, '');
                     calculateRowAmount(row);
                     calculateTotals();
                 });
@@ -726,5 +782,5 @@ PO13 9FX</textarea>
             calculateTotals();
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'961a7ffdf632773b',t:'MTc1MjkzMTA1Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'961a9517d238c5eb',t:'MTc1MjkzMTkyMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
