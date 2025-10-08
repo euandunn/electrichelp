@@ -684,6 +684,7 @@ PO13 9FX</textarea>
             
             <div class="flex mt-4 gap-4">
                 <button id="add-line" class="action-link text-sm">+ Add Line Item</button>
+                <button id="add-deduction" class="text-red-500 text-sm font-medium">- Add Deduction</button>
                 <button id="add-weekdays" class="text-green-500 text-sm font-medium">+ Add All Weekdays</button>
             </div>
         </div>
@@ -1340,6 +1341,15 @@ PO13 9FX</textarea>
                 document.getElementById('empty-state').classList.add('hidden');
             });
 
+            // Add deduction
+            document.getElementById('add-deduction').addEventListener('click', function() {
+                addNewRow('', true); // Pass true to indicate this is a deduction
+                calculateTotals();
+                
+                // Hide empty state if it was showing
+                document.getElementById('empty-state').classList.add('hidden');
+            });
+
             // Add all weekdays
             document.getElementById('add-weekdays').addEventListener('click', function() {
                 const fromDate = new Date(document.getElementById('date-from').value);
@@ -1366,7 +1376,7 @@ PO13 9FX</textarea>
             });
 
             // Add new row function
-            function addNewRow(dateValue = '') {
+            function addNewRow(dateValue = '', isDeduction = false) {
                 const tbody = document.getElementById('invoice-items');
                 const newRow = document.createElement('tr');
                 newRow.className = 'table-row fade-in';
@@ -1389,6 +1399,11 @@ PO13 9FX</textarea>
                 // Set the data-date attribute for filtering
                 newRow.dataset.date = dateValue;
                 
+                // Set default placeholder text based on whether it's a deduction
+                const descriptionPlaceholder = isDeduction ? "Description of deduction (e.g., materials, expenses)" : "Description of work performed";
+                const hoursPlaceholder = isDeduction ? "Qty" : "";
+                const rateValue = isDeduction ? "-" : "";
+                
                 newRow.innerHTML = `
                     <td class="py-2 px-3 border-b border-gray-50">
                         <input type="text" class="table-input text-sm date-field" value="${dateValue}">
@@ -1397,13 +1412,13 @@ PO13 9FX</textarea>
                         <textarea class="table-input text-sm location-input resize-none" rows="1" placeholder="Location/Plot Number"></textarea>
                     </td>
                     <td class="py-2 px-3 border-b border-gray-50">
-                        <textarea class="table-input text-sm description-input resize-none" rows="1" placeholder="Description of work performed"></textarea>
+                        <textarea class="table-input text-sm description-input resize-none" rows="1" placeholder="${descriptionPlaceholder}"></textarea>
                     </td>
                     <td class="py-2 px-3 border-b border-gray-50">
-                        <input type="number" class="table-input text-sm text-right hours-input" value="" min="0" step="0.5" placeholder="">
+                        <input type="number" class="table-input text-sm text-right hours-input" value="" min="0" step="0.5" placeholder="${hoursPlaceholder}">
                     </td>
                     <td class="py-2 px-3 border-b border-gray-50">
-                        <input type="text" class="table-input text-sm text-right rate-input" placeholder="0.00">
+                        <input type="text" class="table-input text-sm text-right rate-input" placeholder="0.00" value="${rateValue}">
                     </td>
                     <td class="py-2 px-3 border-b border-gray-50">
                         <input type="text" class="table-input text-sm text-right amount-field" value="£0.00" readonly>
@@ -1423,6 +1438,13 @@ PO13 9FX</textarea>
                 textareas.forEach(textarea => {
                     autoResizeTextarea(textarea);
                 });
+                
+                // If it's a deduction, style the row slightly differently
+                if (isDeduction) {
+                    newRow.style.backgroundColor = 'rgba(220, 38, 38, 0.02)';
+                    const rateInput = newRow.querySelector('.rate-input');
+                    rateInput.style.color = '#dc2626';
+                }
                 
                 // If we're in a specific day view, hide the row if it doesn't match
                 if (activeDay !== 'all' && dayMapping[activeDay]) {
@@ -1460,27 +1482,47 @@ PO13 9FX</textarea>
                     calculateTotals();
                 });
                 
-                // Improved rate input handling
+                // Improved rate input handling with negative support
                 rateInput.addEventListener('focus', function() {
-                    // Remove currency symbol when focusing
-                    const value = rateInput.value.replace(/[^0-9.]/g, '');
+                    // Remove currency symbol when focusing, keep minus sign
+                    const value = rateInput.value.replace(/[^0-9.-]/g, '');
                     rateInput.value = value;
                 });
                 
                 rateInput.addEventListener('blur', function() {
                     // Format as currency when leaving field
                     if (rateInput.value) {
-                        const value = parseFloat(rateInput.value.replace(/[^0-9.]/g, '')) || 0;
-                        rateInput.value = '£' + value.toFixed(2);
+                        const value = parseFloat(rateInput.value.replace(/[^0-9.-]/g, '')) || 0;
+                        if (value < 0) {
+                            rateInput.value = '-£' + Math.abs(value).toFixed(2);
+                            rateInput.style.color = '#dc2626'; // Red color for negative rates
+                        } else {
+                            rateInput.value = '£' + value.toFixed(2);
+                            rateInput.style.color = ''; // Default color
+                        }
                     } else {
                         rateInput.value = '';
+                        rateInput.style.color = '';
                     }
                     calculateRowAmount(row);
                 });
                 
                 rateInput.addEventListener('input', function() {
-                    // Only allow numbers and decimal point
-                    rateInput.value = rateInput.value.replace(/[^0-9.]/g, '');
+                    // Allow numbers, decimal point, and minus sign
+                    let value = rateInput.value;
+                    // Remove any characters that aren't numbers, decimal point, or minus
+                    value = value.replace(/[^0-9.-]/g, '');
+                    // Ensure only one minus sign at the beginning
+                    if (value.indexOf('-') > 0) {
+                        value = value.replace(/-/g, '');
+                    }
+                    // Ensure only one decimal point
+                    const decimalCount = (value.match(/\./g) || []).length;
+                    if (decimalCount > 1) {
+                        const parts = value.split('.');
+                        value = parts[0] + '.' + parts.slice(1).join('');
+                    }
+                    rateInput.value = value;
                     calculateRowAmount(row);
                     calculateTotals();
                 });
@@ -1511,10 +1553,18 @@ PO13 9FX</textarea>
                 const amountField = row.querySelector('.amount-field');
                 
                 const hours = parseFloat(hoursInput.value) || 0;
-                const rate = parseFloat(rateInput.value.replace(/[^0-9.]/g, '')) || 0;
+                const rateValue = rateInput.value.replace(/[^0-9.-]/g, '');
+                const rate = parseFloat(rateValue) || 0;
                 const amount = hours * rate;
                 
-                amountField.value = '£' + amount.toFixed(2);
+                // Format with appropriate sign
+                if (amount < 0) {
+                    amountField.value = '-£' + Math.abs(amount).toFixed(2);
+                    amountField.style.color = '#dc2626'; // Red color for negative amounts
+                } else {
+                    amountField.value = '£' + amount.toFixed(2);
+                    amountField.style.color = ''; // Default color
+                }
             }
 
             // Calculate totals
@@ -1524,15 +1574,40 @@ PO13 9FX</textarea>
                 
                 visibleRows.forEach(row => {
                     const amountField = row.querySelector('.amount-field');
-                    subtotal += parseFloat(amountField.value.replace(/[^0-9.]/g, '')) || 0;
+                    const amountValue = amountField.value.replace(/[^0-9.-]/g, '');
+                    subtotal += parseFloat(amountValue) || 0;
                 });
                 
                 const cisDeduction = subtotal * 0.2;
                 const totalDue = subtotal - cisDeduction;
                 
-                document.getElementById('subtotal').textContent = '£' + subtotal.toFixed(2);
-                document.getElementById('cis-deduction').textContent = '£' + cisDeduction.toFixed(2);
-                document.getElementById('total-due').textContent = '£' + totalDue.toFixed(2);
+                // Format subtotal with appropriate color
+                const subtotalElement = document.getElementById('subtotal');
+                if (subtotal < 0) {
+                    subtotalElement.textContent = '-£' + Math.abs(subtotal).toFixed(2);
+                    subtotalElement.style.color = '#dc2626';
+                } else {
+                    subtotalElement.textContent = '£' + subtotal.toFixed(2);
+                    subtotalElement.style.color = '';
+                }
+                
+                // Format CIS deduction
+                const cisElement = document.getElementById('cis-deduction');
+                if (cisDeduction < 0) {
+                    cisElement.textContent = '-£' + Math.abs(cisDeduction).toFixed(2);
+                } else {
+                    cisElement.textContent = '£' + cisDeduction.toFixed(2);
+                }
+                
+                // Format total due with appropriate color
+                const totalElement = document.getElementById('total-due');
+                if (totalDue < 0) {
+                    totalElement.textContent = '-£' + Math.abs(totalDue).toFixed(2);
+                    totalElement.style.color = '#dc2626';
+                } else {
+                    totalElement.textContent = '£' + totalDue.toFixed(2);
+                    totalElement.style.color = '';
+                }
             }
 
             // Show toast notification
@@ -2146,6 +2221,34 @@ PO13 9FX</textarea>
                 }
             }
 
+            // Set current week dates automatically
+            function setCurrentWeekDates() {
+                const today = new Date();
+                const day = today.getDay();
+                
+                // Calculate Monday of current week (day 0 = Sunday, day 1 = Monday)
+                const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+                const monday = new Date(today);
+                monday.setDate(diff);
+                
+                // Calculate Friday (4 days after Monday)
+                const friday = new Date(monday);
+                friday.setDate(monday.getDate() + 4);
+                
+                // Set the date inputs to current week
+                document.getElementById('date-from').value = formatDateForInput(monday);
+                document.getElementById('date-to').value = formatDateForInput(friday);
+                
+                // Update day mapping
+                updateDayMapping(monday);
+                
+                // Update fiscal week and invoice number immediately
+                updateFiscalWeekAndInvoiceNumber();
+            }
+            
+            // Call this function on page load to set current week
+            setCurrentWeekDates();
+            
             // Setup initial row event listeners
             document.querySelectorAll('.table-row').forEach(row => {
                 setupRowEventListeners(row);
@@ -2209,5 +2312,5 @@ PO13 9FX</textarea>
             // addSampleData();
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9655c2dc41a3e908',t:'MTc1MzU1MjQ1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98b8096c1662bec8',t:'MTc1OTk1MTY1OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
